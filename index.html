@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1f2545">
+<title>古代日本史 問題集</title>
+<style>
+  :root{
+    --paper:#f3ede0;        /* 和紙 */
+    --paper2:#ebe2cf;
+    --ink:#23283f;          /* 藍墨 */
+    --ink2:#5a5f72;
+    --shu:#c8412b;          /* 朱 */
+    --shu-d:#a8341f;
+    --gold:#9c7a3c;         /* 古色 */
+    --green:#3f7d4f;
+    --line:#d6cbb3;
+    --card:#fbf7ee;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.7;
+    font-size:17px;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:18px 16px 60px;}
+  .mincho{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;}
+
+  /* ヘッダー */
+  header{text-align:center;padding:10px 0 6px;}
+  header .eyebrow{font-size:12px;letter-spacing:.4em;color:var(--shu);margin:0;}
+  header h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:26px;margin:4px 0 2px;letter-spacing:.06em;}
+  header .sub{font-size:12.5px;color:var(--ink2);margin:0;}
+
+  /* カード */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0;
+    box-shadow:0 1px 0 #fff inset,0 6px 18px rgba(40,30,10,.06);}
+
+  /* ホーム：統計 */
+  .stat-row{display:flex;gap:10px;margin:0 0 6px;}
+  .stat{flex:1;text-align:center;background:var(--paper2);border-radius:10px;padding:10px 4px;}
+  .stat b{display:block;font-size:22px;font-family:"Hiragino Mincho ProN",serif;color:var(--ink);}
+  .stat span{font-size:11.5px;color:var(--ink2);}
+
+  /* ラベル＆選択チップ */
+  .label{font-size:13px;color:var(--ink2);margin:16px 0 7px;font-weight:600;letter-spacing:.02em;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;
+    padding:9px 15px;font-size:14px;cursor:pointer;transition:.12s;min-height:42px;}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .chip.sm{padding:8px 13px;font-size:13.5px;}
+
+  /* ボタン */
+  .btn{display:block;width:100%;border:none;border-radius:12px;padding:16px;font-size:18px;font-weight:700;
+    cursor:pointer;margin-top:18px;letter-spacing:.05em;}
+  .btn.primary{background:var(--shu);color:#fff;box-shadow:0 4px 0 var(--shu-d);}
+  .btn.primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--shu-d);}
+  .btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line);box-shadow:none;font-size:15px;padding:12px;font-weight:600;}
+  .btn.sm{padding:11px;font-size:15px;margin-top:10px;}
+
+  /* 進捗バー */
+  .topbar{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink2);margin-bottom:4px;}
+  .prog{height:7px;background:var(--paper2);border-radius:99px;overflow:hidden;margin-bottom:14px;}
+  .prog > i{display:block;height:100%;background:var(--shu);width:0;transition:width .25s;}
+
+  /* 問題 */
+  .qcat{display:inline-block;font-size:11.5px;color:var(--gold);border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin-bottom:10px;letter-spacing:.08em;}
+  .qtype{color:var(--shu);font-weight:700;}
+  .qtext{font-size:19px;font-weight:600;white-space:pre-line;margin:2px 0 16px;line-height:1.6;}
+
+  /* 選択肢 */
+  .opt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:11px;
+    padding:14px 15px;margin:9px 0;font-size:16px;cursor:pointer;color:var(--ink);transition:.1s;min-height:50px;}
+  .opt:active{background:var(--paper2);}
+  .opt.correct{border-color:var(--green);background:#eaf3ec;}
+  .opt.wrong{border-color:var(--shu);background:#f7e9e6;}
+  .opt.dim{opacity:.55;}
+  .opt .mk{float:right;font-weight:800;font-size:18px;}
+
+  /* 並べ替え */
+  .ord-pool,.ord-ans{display:flex;flex-direction:column;gap:8px;margin:6px 0;}
+  .ord-ans{min-height:8px;border:1.5px dashed var(--line);border-radius:11px;padding:8px;background:#fff8;}
+  .ord-item{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15.5px;cursor:pointer;}
+  .ord-item .num{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;background:var(--ink);color:#fff;border-radius:99px;font-size:12px;margin-right:9px;}
+  .ord-empty{color:var(--ink2);font-size:13px;text-align:center;padding:8px;}
+
+  /* 記述 */
+  .reveal{background:var(--paper2);border-radius:11px;padding:14px;margin-top:8px;}
+  .reveal h4{margin:0 0 6px;font-size:13px;color:var(--ink2);letter-spacing:.05em;}
+  .reveal .model{font-size:16px;margin-bottom:12px;}
+  .kw{display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px dashed var(--line);}
+  .kw input{width:22px;height:22px;accent-color:var(--green);}
+  .kw label{font-size:15px;}
+  .selfask{font-size:14px;color:var(--ink2);margin:12px 0 4px;text-align:center;}
+  .selfrow{display:flex;gap:10px;}
+  .selfrow .btn{margin-top:6px;}
+  .btn.maru{background:var(--green);color:#fff;box-shadow:0 4px 0 #2f5f3c;}
+  .btn.batsu{background:#fff;color:var(--shu);border:1.5px solid var(--shu);box-shadow:none;}
+
+  /* フィードバック */
+  .fb{border-radius:11px;padding:13px 15px;margin-top:14px;font-size:15px;}
+  .fb.ok{background:#eaf3ec;color:var(--green);}
+  .fb.ng{background:#f7e9e6;color:var(--shu-d);}
+  .fb b{font-size:17px;}
+  .exp{font-size:14.5px;color:var(--ink);margin-top:8px;line-height:1.65;}
+
+  /* 結果 */
+  .score-big{text-align:center;font-family:"Hiragino Mincho ProN",serif;}
+  .score-big .n{font-size:54px;color:var(--shu);line-height:1.1;}
+  .score-big .d{font-size:20px;color:var(--ink2);}
+  .msg{text-align:center;font-size:16px;margin:6px 0 4px;}
+  .wronglist{margin-top:14px;}
+  .wronglist li{font-size:14px;color:var(--ink2);margin:6px 0;padding-left:4px;list-style:none;border-left:3px solid var(--line);padding:4px 0 4px 10px;}
+
+  .hidden{display:none;}
+  .footnote{text-align:center;font-size:11px;color:var(--ink2);margin-top:26px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= ホーム ================= -->
+  <section id="home">
+    <header>
+      <p class="eyebrow">日本史</p>
+      <h1>古代国家のあゆみ</h1>
+      <p class="sub">縄文 ・ 弥生 ・ 古墳とヤマト政権</p>
+    </header>
+
+    <div class="card">
+      <div class="stat-row">
+        <div class="stat"><b id="st-ans">0</b><span>といた数</span></div>
+        <div class="stat"><b id="st-acc">—</b><span>正答率</span></div>
+        <div class="stat"><b id="st-wrong">0</b><span>にがて</span></div>
+      </div>
+
+      <div class="label">はんい</div>
+      <div class="chips" id="catChips"></div>
+
+      <div class="label">もんだい数</div>
+      <div class="chips" id="countChips">
+        <button class="chip sm on" data-count="10">10問</button>
+        <button class="chip sm" data-count="20">20問</button>
+        <button class="chip sm" data-count="0">ぜんぶ</button>
+      </div>
+
+      <button class="btn primary" id="startBtn">スタート</button>
+      <button class="btn ghost sm" id="reviewBtn">にがてな問題だけ復習する</button>
+    </div>
+
+    <button class="btn ghost sm" id="resetBtn" style="max-width:240px;margin:0 auto;">記録をリセット</button>
+    <p class="footnote mincho">出題は毎回ランダム。記録はこの端末に保存されます。</p>
+  </section>
+
+  <!-- ================= 出題 ================= -->
+  <section id="quiz" class="hidden">
+    <div class="topbar">
+      <span id="qcount">1 / 10</span>
+      <span id="qscore">正解 0</span>
+    </div>
+    <div class="prog"><i id="progBar"></i></div>
+
+    <div class="card">
+      <span class="qcat" id="qcat">縄文</span>
+      <div class="qtext" id="qtext"></div>
+      <div id="qbody"></div>
+      <div id="qfeedback"></div>
+    </div>
+
+    <button class="btn primary hidden" id="nextBtn">次へ</button>
+    <button class="btn ghost sm" id="quitBtn">やめてホームへ</button>
+  </section>
+
+  <!-- ================= 結果 ================= -->
+  <section id="result" class="hidden">
+    <div class="card">
+      <div class="score-big"><span class="n" id="rsScore">0</span><span class="d" id="rsTotal"> / 0</span></div>
+      <p class="msg mincho" id="rsMsg"></p>
+      <ul class="wronglist" id="rsWrong"></ul>
+      <button class="btn primary" id="againWrongBtn">まちがえた問題をもう一度</button>
+      <button class="btn ghost" id="homeBtn">ホームへ戻る</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =======================================================================
+   1) データ層 ── ノートを構造化したもの（ここを増やせば問題が増えます）
+   ======================================================================= */
+
+// --- 用語（term / 読み / 意味 / 分野） → ここから一問一答・穴埋めを自動生成 ---
+const TERMS = [
+  // 旧石器
+  ["相沢忠洋","あいざわただひろ","1946年に関東ローム層から打製石器を発見し、日本に旧石器時代があったことを明らかにした人物","旧石器"],
+  ["岩宿遺跡","いわじゅくいせき","群馬県にある、相沢忠洋が打製石器を発見した旧石器時代の遺跡","旧石器"],
+  ["関東ローム層","かんとうろーむそう","更新世の富士山などの火山灰が積もった地層。ここから打製石器が見つかった","旧石器"],
+  ["更新世","こうしんせい","氷河時代をふくむ地質時代。寒冷で、海面が今より100m以上低かった","旧石器"],
+  ["氷河時代","ひょうがじだい","寒冷化で海面が大きく下がり、日本列島が大陸と陸続きになる時期もあった時代","旧石器"],
+  ["ナウマンゾウ","なうまんぞう","朝鮮半島ルートで日本へ渡来した大型動物。野尻湖遺跡で化石が見つかった","旧石器"],
+  ["マンモス","まんもす","北方ルート(シベリア経由)で日本へ渡来した大型動物","旧石器"],
+  ["オオツノジカ","おおつのじか","朝鮮半島ルートで渡来した大型動物。野尻湖遺跡で化石が見つかった","旧石器"],
+  ["野尻湖遺跡","のじりこいせき","長野県にある、ナウマンゾウとオオツノジカの化石が見つかった旧石器時代の遺跡","旧石器"],
+  ["黒曜石","こくようせき","石器の材料になる火山岩。産地と分布から、遠方との交易があったことがわかる","旧石器"],
+  ["ナイフ型石器","ないふがたせっき","旧石器時代に使われた打製石器の一種","旧石器"],
+
+  // 縄文
+  ["完新世","かんしんせい","約1万年前に始まった温暖な時代。海進が進み、ほぼ今の日本列島ができた","縄文"],
+  ["海進","かいしん","温暖化で海面が上がり、海が内陸まで入りこむこと","縄文"],
+  ["縄文土器","じょうもんどき","厚手で黒褐色、低温で焼かれ、縄目の文様をもつ土器","縄文"],
+  ["貝塚","かいづか","人々が捨てた貝がらなどが積もった遺跡。当時の生活を知る貴重な資料","縄文"],
+  ["大森貝塚","おおもりかいづか","エドワード・モースが発見し、日本の考古学研究の始まりとなった貝塚","縄文"],
+  ["土偶","どぐう","縄文時代の呪術的な風習に使われたとされる人形","縄文"],
+  ["屈葬","くっそう","手足を折り曲げて死者を埋葬する縄文時代の方法","縄文"],
+  ["アニミズム","あにみずむ","すべての自然物に霊魂が宿ると信じる考え方","縄文"],
+  ["三内丸山遺跡","さんないまるやまいせき","青森県にある、紀元前3500年頃から約1500年続いた大規模な縄文集落の遺跡","縄文"],
+  ["磨製石器","ませいせっき","表面をみがいてなめらかにした石器","縄文"],
+  ["打製石器","だせいせっき","打ち欠いて鋭い刃をつくった石器","縄文"],
+
+  // 弥生
+  ["弥生土器","やよいどき","薄くて硬く赤褐色、高温で焼かれ飾りの少ない土器。文京区弥生町で発見された","弥生"],
+  ["高床倉庫","たかゆかそうこ","収穫した米などを貯蔵した倉庫。湿気やねずみを防ぐ工夫がある","弥生"],
+  ["石包丁","いしぼうちょう","稲の穂をつみ取るのに使った磨製石器","弥生"],
+  ["青銅器","せいどうき","銅剣・銅矛・銅鏡・銅鐸など。多くは祭りの道具(祭器)として使われた","弥生"],
+  ["銅鐸","どうたく","弥生時代に祭りに使われた青銅器","弥生"],
+  ["渡来人","とらいじん","朝鮮半島などから日本へ移り住み、進んだ技術や文化を伝えた人々","弥生"],
+  ["登呂遺跡","とろいせき","静岡県にある弥生時代の遺跡","弥生"],
+  ["環濠集落","かんごうしゅうらく","周りに堀や柵をめぐらせた、戦いに備えた集落","弥生"],
+  ["吉野ヶ里遺跡","よしのがりいせき","佐賀県にある、大規模な環濠集落で知られる弥生時代の遺跡","弥生"],
+  ["竪穴住居","たてあなじゅうきょ","地面を掘りくぼめ、柱を建てて屋根をかけた住居","弥生"],
+
+  // 中国への遣使
+  ["漢書地理志","かんじょちりし","紀元前後、倭が百余国に分かれていたことを記した中国の歴史書","遣使"],
+  ["後漢書東夷伝","ごかんじょとういでん","57年に倭の奴国が後漢へ使いを送ったことなどを記した中国の歴史書","遣使"],
+  ["奴国","なこく","福岡平野にあった倭の小国。57年に後漢へ使いを送り金印を授かった","遣使"],
+  ["漢委奴国王","かんのわのなのこくおう","57年に光武帝が奴国の王に授けた金印に刻まれた文字。志賀島で発見された","遣使"],
+  ["光武帝","こうぶてい","奴国の王に金印を授けた後漢の皇帝","遣使"],
+  ["帥升","すいしょう","107年に後漢へ奴隷160人を献上した倭国王","遣使"],
+  ["冊封","さくほう","中国の皇帝が周辺国の王の地位を認めること","遣使"],
+  ["朝貢","ちょうこう","周辺国が中国へ使いを送り、貢ぎ物をおさめること","遣使"],
+
+  // 邪馬台国
+  ["邪馬台国","やまたいこく","3世紀に30あまりの小国を従えた、卑弥呼が治めた国","邪馬台国"],
+  ["卑弥呼","ひみこ","邪馬台国の女王。呪術にすぐれ、魏から「親魏倭王」の称号を授かった","邪馬台国"],
+  ["魏志倭人伝","ぎしわじんでん","邪馬台国や卑弥呼のようすを記した中国の歴史書","邪馬台国"],
+  ["親魏倭王","しんぎわおう","239年に魏の皇帝が卑弥呼に与えた称号","邪馬台国"],
+  ["帯方郡","たいほうぐん","楽浪郡の南部に置かれ、魏が支配した出先機関。卑弥呼が使いを送った","邪馬台国"],
+  ["壱与","いよ","卑弥呼の死後、争乱をしずめるため王に立てられた一族の女性","邪馬台国"],
+
+  // 古墳・ヤマト政権
+  ["前方後円墳","ぜんぽうこうえんふん","円形と方形を組み合わせた形の古墳。各地の王に共通する墓制","古墳"],
+  ["埴輪","はにわ","古墳の墳丘の上に並べられた素焼きの土製品","古墳"],
+  ["葺石","ふきいし","古墳の斜面にしきつめられた石","古墳"],
+  ["竪穴式石室","たてあなしきせきしつ","古墳の前・中期に多い、追葬ができない構造の石室","古墳"],
+  ["横穴式石室","よこあなしきせきしつ","古墳後期の石室。玄室と羨道をもち、追葬ができる","古墳"],
+  ["箸墓古墳","はしはかこふん","出現期で最大とされる前方後円墳","古墳"],
+  ["大山古墳","だいせんこふん","仁徳天皇陵とされる日本最大の前方後円墳。大阪府にある","古墳"],
+  ["ヤマト政権","やまとせいけん","近畿地方の有力豪族が構成し、各地の王を束ねた政権","古墳"],
+  ["大王","おおきみ","ヤマト政権の王の呼び名","古墳"],
+  ["ワカタケル大王","わかたけるおおきみ","稲荷山古墳の鉄剣や江田船山古墳の鉄刀に名が刻まれた大王。雄略天皇とされる","古墳"],
+  ["稲荷山古墳","いなりやまこふん","埼玉県にあり、ワカタケル大王の名を刻んだ鉄剣が出土した古墳","古墳"],
+  ["江田船山古墳","えたふなやまこふん","熊本県にあり、ワカタケル大王の名を刻んだ鉄刀が出土した古墳","古墳"],
+  ["群集墳","ぐんしゅうふん","古墳後期(6〜7世紀)に現れた小さな古墳の集まり。有力農民が葬られた","古墳"],
+
+  // 氏姓制度
+  ["氏姓制度","しせいせいど","5〜6世紀に確立した、氏と姓によるヤマト政権の支配のしくみ","政治"],
+  ["氏","うじ","同じ祖先をもつと信じる人々の集団。蘇我・物部・中臣など","政治"],
+  ["姓","かばね","大王から与えられ、朝廷における氏の地位を示すもの","政治"],
+  ["大臣","おおおみ","臣のなかでも有力な豪族に与えられた地位。蘇我氏など","政治"],
+  ["大連","おおむらじ","連のなかでも有力な豪族に与えられた地位。物部氏など","政治"],
+  ["国造","くにのみやつこ","ヤマト政権に服属し、地方の支配を任された地方豪族","政治"],
+  ["屯倉","みやけ","大王(ヤマト政権)の私有地","政治"],
+  ["田荘","たどころ","豪族の私有地","政治"],
+
+  // 朝鮮との交流
+  ["高句麗","こうくり","4世紀に楽浪郡・帯方郡を滅ぼした、朝鮮半島北部の国","交流"],
+  ["百済","くだら","朝鮮半島南西部の国。倭(ヤマト政権)と結んだ","交流"],
+  ["新羅","しらぎ","朝鮮半島南東部の国","交流"],
+  ["伽耶","かや","朝鮮半島南部の小国分立地域。ヤマト政権が鉄を求めた拠点","交流"],
+  ["好太王","こうたいおう","4世紀後半の高句麗の王(広開土王)。その碑文に倭との戦いが記されている","交流"],
+  ["倭の五王","わのごおう","5世紀に中国の南朝へ使いを送った讃・珍・済・興・武の5人の王","交流"],
+  ["倭王武","わおうぶ","倭の五王の一人。478年に宋へ手紙を送った。ワカタケル大王(雄略天皇)とされる","交流"],
+  ["宋書倭国伝","そうじょわこくでん","倭の五王について記した中国の歴史書","交流"],
+
+  // 大陸文化・仏教
+  ["須恵器","すえき","渡来人が伝えたのぼりがまで焼く、灰色で硬い土器","文化"],
+  ["土師器","はじき","弥生土器の系統を引く赤い土器","文化"],
+  ["聖明王","せいめいおう","仏像や経典を欽明天皇に贈った百済の王","文化"],
+  ["欽明天皇","きんめいてんのう","百済から仏教が伝えられたときの天皇","文化"],
+  ["崇仏論争","すうぶつろんそう","仏教を受け入れるかをめぐる、蘇我氏と物部氏の対立","文化"],
+  ["蘇我氏","そがし","崇仏派で、渡来人と結んで朝廷で力をのばした豪族","文化"],
+  ["物部氏","もののべし","排仏派で、日本古来の神々を重視した豪族","文化"],
+  ["儒教","じゅきょう","渡来人が日本に伝えた中国の教え","文化"]
+];
+
+// --- 作問プール（因果・正誤・並べ替え・記述など、生成しにくい良問） ---
+const POOL = [
+  // 旧石器
+  {type:"tf",cat:"旧石器",q:"日本では古くから、旧石器時代の存在が確かめられていた。",a:false,exp:"長い間「旧石器時代はない」と考えられ、1946年の相沢忠洋の発見、1949年の学術調査で初めて確認された。"},
+  {type:"tf",cat:"旧石器",q:"氷河時代には海面が下がり、日本列島が大陸と陸続きになる時期もあった。",a:true,exp:"海面が現在より100m以上低下した。大型動物を追って人間も移り住んだ。"},
+  {type:"tf",cat:"旧石器",q:"マンモスは朝鮮半島ルートで日本へ渡来した。",a:false,exp:"マンモス・ヘラジカは北方ルート(シベリア経由)。ナウマンゾウ・オオツノジカが朝鮮半島ルート。"},
+  {type:"mc",cat:"旧石器",q:"1946年に関東ローム層から打製石器を発見した人物は？",
+    choices:["相沢忠洋","エドワード・モース","卑弥呼","聖明王"],a:"相沢忠洋",exp:"これにより日本にも旧石器時代があったことが明らかになった。"},
+  {type:"mc",cat:"旧石器",q:"相沢忠洋が打製石器を発見した、群馬県の遺跡は？",
+    choices:["岩宿遺跡","野尻湖遺跡","三内丸山遺跡","登呂遺跡"],a:"岩宿遺跡",exp:"岩宿遺跡(群馬県)。"},
+  {type:"mc",cat:"旧石器",q:"ナウマンゾウとオオツノジカの化石が見つかった、長野県の遺跡は？",
+    choices:["野尻湖遺跡","岩宿遺跡","吉野ヶ里遺跡","板付遺跡"],a:"野尻湖遺跡",exp:"野尻湖遺跡(長野県)。"},
+  {type:"mc",cat:"旧石器",q:"産地と分布から遠方との交易を示す、石器の材料となった火山岩は？",
+    choices:["黒曜石","青銅","須恵土","埴輪"],a:"黒曜石",exp:"黒曜石の産地と打製石器の分布から、広い範囲の交易がわかる。"},
+  {type:"desc",cat:"旧石器",q:"更新世の地層から打製石器が見つかったことは、何を意味しているのだろう。",
+    model:"更新世(旧石器時代)に、打製石器を使う人類(新人)がすでに日本に存在していたこと。",
+    keywords:["更新世(旧石器時代)に","打製石器を使う人(新人)が存在"]},
+  {type:"desc",cat:"旧石器",q:"ナウマンゾウとオオツノジカが同じ場所(野尻湖)で見つかっていることは、そこで何が行われていたことを示すだろう。",
+    model:"打製石器を使って大型動物の狩りや解体が行われていたこと。",
+    keywords:["打製石器","大型動物の解体(狩り)"]},
+  {type:"desc",cat:"旧石器",q:"旧石器時代に、少人数の集団しか作れなかったのはなぜだろう。",
+    model:"獲物や植物を求めて移動する暮らしで食料の確保が安定せず、大人数分の食事をまかなえなかったから。",
+    keywords:["食料の確保が不安定","大人数をまかなえない"]},
+
+  // 正誤
+  {type:"tf",cat:"縄文",q:"縄文土器は高温で焼かれ、飾りが少ないのが特徴である。",a:false,exp:"それは弥生土器の特徴。縄文土器は厚手・黒褐色・低温焼成で、縄目の文様がある。"},
+  {type:"tf",cat:"弥生",q:"弥生時代に、稲作が大陸から日本へ伝わった。",a:true,exp:"紀元前5〜4世紀ころ、大陸(長江流域)から朝鮮半島を経て九州北部に伝わったとされる。"},
+  {type:"tf",cat:"弥生",q:"弥生文化は北海道や沖縄にも広まった。",a:false,exp:"弥生文化(稲作)は北海道・沖縄にはみられない。"},
+  {type:"tf",cat:"弥生",q:"青銅器は主に実戦の武器として使われた。",a:false,exp:"青銅器の多くは祭りの道具(祭器)として使われ、埋納されることが多かった。"},
+  {type:"tf",cat:"邪馬台国",q:"卑弥呼のようすは『漢書』地理志に記されている。",a:false,exp:"卑弥呼を記すのは『魏志』倭人伝。『漢書』地理志は紀元前後の「百余国」を記す。"},
+  {type:"tf",cat:"遣使",q:"金印「漢委奴国王」は、江戸時代に福岡県の志賀島で発見された。",a:true,exp:"57年に光武帝が奴国の王へ授けたもの。"},
+  {type:"tf",cat:"古墳",q:"前方後円墳のなかで最大のものは箸墓古墳である。",a:false,exp:"最大は大山古墳(仁徳天皇陵、大阪府)。箸墓古墳は「出現期」最大とされる。"},
+  {type:"tf",cat:"古墳",q:"横穴式石室は追葬ができる構造である。",a:true,exp:"玄室と羨道をもち、同じ墓に追加で埋葬できる。権威を示す墓から家族墓的な性格への変化を表す。"},
+  {type:"tf",cat:"文化",q:"仏教は中国の隋から日本へ直接伝えられた。",a:false,exp:"百済の聖明王が、仏像や経典を欽明天皇に贈ったのが始まりとされる(538年/一説に552年)。"},
+  {type:"tf",cat:"文化",q:"崇仏論争では、蘇我氏が排仏派であった。",a:false,exp:"蘇我氏が崇仏派、物部氏が排仏派。"},
+  {type:"tf",cat:"交流",q:"ヤマト政権が鉄を求めて結んだ朝鮮半島の拠点は伽耶(加羅)である。",a:true,exp:"百済とも結び、高句麗・新羅と戦った。"},
+
+  // 因果・読み取りの選択
+  {type:"mc",cat:"遣使",q:"楽浪郡の南部に新たに置かれ、魏が支配した出先機関は？",
+    choices:["帯方郡","平城京","大宰府","出雲国"],a:"帯方郡",exp:"卑弥呼はここに使いを送った。"},
+  {type:"mc",cat:"遣使",q:"倭の奴国が後漢へ使いを送ったときの、後漢の都はどこ？",
+    choices:["洛陽","長安","南京","北京"],a:"洛陽",exp:"57年、奴国の王が後漢の都・洛陽へ使いを送った。"},
+  {type:"mc",cat:"政治",q:"氏姓制度で、財政を担当したとされる「臣」の姓をもつ豪族は？",
+    choices:["蘇我氏","物部氏","中臣氏","大伴氏"],a:"蘇我氏",exp:"蘇我=臣・財政、物部=連・軍事、中臣=連・祭祀。"},
+  {type:"mc",cat:"政治",q:"氏姓制度で、軍事を担当したとされる「連」の姓をもつ豪族は？",
+    choices:["物部氏","蘇我氏","中臣氏","葛城氏"],a:"物部氏",exp:"のちに崇仏論争で蘇我氏と対立する。"},
+  {type:"mc",cat:"政治",q:"氏姓制度で、祭祀を担当したとされる豪族は？",
+    choices:["中臣氏","蘇我氏","物部氏","紀氏"],a:"中臣氏",exp:"中臣=連・祭祀。"},
+  {type:"mc",cat:"古墳",q:"稲荷山古墳の鉄剣と江田船山古墳の鉄刀に名が刻まれた大王は？",
+    choices:["ワカタケル大王","聖明王","帥升","好太王"],a:"ワカタケル大王",exp:"雄略天皇とされ、関東(埼玉)〜九州(熊本)に支配が及んだことを示す。"},
+  {type:"mc",cat:"交流",q:"倭の五王の「武」が中国の南朝に求めたものは？",
+    choices:["朝鮮半島南部の軍事的指揮権","仏教の経典","稲作の技術","暦の知識"],a:"朝鮮半島南部の軍事的指揮権",
+    exp:"朝鮮半島南部での影響力を拡大するため。478年に宋へ手紙を送った(『宋書』倭国伝)。"},
+  {type:"mc",cat:"縄文",q:"大森貝塚を発見し、日本の考古学研究のきっかけをつくった人物は？",
+    choices:["エドワード・モース","シーボルト","ナウマン","フェノロサ"],a:"エドワード・モース",exp:"アメリカの動物学者。"},
+
+  // 並べ替え（items を「正しい順」で記述。出題時にシャッフル）
+  {type:"order",cat:"時代",q:"次の時代を古い順に並べよう。",
+    items:["旧石器時代","縄文時代","弥生時代","古墳時代"],exp:"打製石器の旧石器 → 狩猟採取の縄文 → 稲作の弥生 → ヤマト政権の古墳。"},
+  {type:"order",cat:"中国",q:"次の中国の時代を古い順に並べよう。",
+    items:["後漢","三国時代(魏・呉・蜀)","南北朝時代"],exp:"後漢の滅亡後に三国時代、やがて南北朝時代へ。"},
+  {type:"order",cat:"遣使",q:"次のできごとを古い順に並べよう。",
+    items:["倭の奴国が後漢に使いを送る(57年)","倭国王帥升が後漢に使いを送る(107年)","倭国が大いに乱れる(2世紀後半)","卑弥呼が魏に使いを送る(239年)"],
+    exp:"57年→107年→倭国大乱→卑弥呼の遣使、の順。"},
+  {type:"order",cat:"交流",q:"次のできごとを古い順に並べよう。",
+    items:["卑弥呼が魏に使いを送る(3世紀)","倭の五王が中国の南朝に使いを送る(5世紀)","仏教が伝わる(6世紀)"],
+    exp:"3世紀→5世紀→6世紀。"},
+  {type:"order",cat:"古墳",q:"古墳の石室を、古い時期から順に並べよう。",
+    items:["竪穴式石室(前・中期)","横穴式石室(後期)"],exp:"追葬できない竪穴式から、追葬できる横穴式へ。"},
+
+  // 記述（自己採点：キーワードで確認）
+  {type:"desc",cat:"縄文",q:"なぜ縄文時代には、農耕があまり発達しなかったのだろう。",
+    model:"海面上昇で大陸から切り離されて島国となり農耕が伝わるのが遅れたうえ、自然が豊かで食料が豊富だったから。",
+    keywords:["海面上昇(島国になった)","農耕が伝わるのが遅い","自然が豊かで食料が豊富"]},
+  {type:"desc",cat:"縄文",q:"木の実が増えると、縄文人の暮らしにどんな良いことがあったのだろう。",
+    model:"食料が安定し、安全に採集でき、高カロリーを得られた。",
+    keywords:["食料が安定する","安全に採集できる","高カロリー"]},
+  {type:"desc",cat:"弥生",q:"環濠集落(堀や柵で囲んだ集落)がつくられたのはなぜだろう。",
+    model:"ムラどうしの戦いに備え、敵から身を守って戦いに勝つため。",
+    keywords:["戦い","身を守る/勝つため"]},
+  {type:"desc",cat:"遣使",q:"倭の王たちが、中国の皇帝から冊封を受けようとしたのはなぜだろう。",
+    model:"鉄の交易ルートを確保し、中国に王として認められた権威を得るため。",
+    keywords:["鉄(の交易ルート)を確保","王として認められる権威"]},
+  {type:"desc",cat:"古墳",q:"各地の王が前方後円墳という共通の墓制をとったことは、どんな意味があるのだろう。",
+    model:"王たちが政治的に結びつき、政治連合(ヤマト政権)が形成されたことを意味する。",
+    keywords:["王たちの結びつき","政治連合(ヤマト政権)の形成"]},
+  {type:"desc",cat:"古墳",q:"古墳の石室が竪穴式から横穴式へ変化したのは、古墳の役割にどんな変化があったためだろう。",
+    model:"権威を示すものから、家族で追葬する家族墓的な性格へと変化したため。",
+    keywords:["権威を示す墓","追葬","家族(墓的)"]},
+  {type:"desc",cat:"交流",q:"騎馬民族の国家である高句麗と戦ったことで、日本に入ってきたものは何だろう。",
+    model:"馬具(乗馬の風習や武具)。",
+    keywords:["馬具"]},
+  {type:"desc",cat:"交流",q:"中国の史料から倭に関する記述がなくなる中で、ヤマト政権の成立を知るには何を調べればよいだろう。",
+    model:"古墳などの現物(考古)史料を調べればよい。",
+    keywords:["古墳など","現物(考古)史料"]},
+  {type:"desc",cat:"文化",q:"蘇我氏が崇仏派だったのはなぜだろう。",
+    model:"渡来人と結びつき、朝廷内での権力を拡大するため。",
+    keywords:["渡来人と結ぶ","朝廷内での権力拡大"]}
+];
+
+/* =======================================================================
+   2) 生成層 ── 用語データから一問一答・穴埋めを自動生成（テンプレ×大量データ）
+   ======================================================================= */
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function pickDistinct(pool,n,exclude){
+  const out=[];const used=new Set(exclude||[]);
+  for(const x of shuffle(pool)){if(out.length>=n)break;if(!used.has(x)){out.push(x);used.add(x);}}
+  return out;
+}
+function generateFromTerms(){
+  const objs=TERMS.map(t=>({term:t[0],read:t[1],mean:t[2],cat:t[3]}));
+  const qs=[];
+  objs.forEach(t=>{
+    const same=objs.filter(o=>o.cat===t.cat&&o.term!==t.term);
+    const meanPool=(same.length>=3?same:objs.filter(o=>o.term!==t.term)).map(o=>o.mean);
+    const termPool=(same.length>=3?same:objs.filter(o=>o.term!==t.term)).map(o=>o.term);
+    // 語句→意味
+    qs.push({type:"mc",cat:t.cat,
+      q:`「${t.term}」の説明として正しいものはどれ？`,
+      choices:shuffle([t.mean,...pickDistinct(meanPool,3,[t.mean])]),
+      a:t.mean,exp:`${t.term}（${t.read}）… ${t.mean}`});
+    // 意味→語句
+    qs.push({type:"mc",cat:t.cat,
+      q:`次の説明にあてはまる語句はどれ？\n「${t.mean}」`,
+      choices:shuffle([t.term,...pickDistinct(termPool,3,[t.term])]),
+      a:t.term,exp:`答え：${t.term}（${t.read}）`});
+  });
+  return qs;
+}
+
+/* =======================================================================
+   3) アプリ層
+   ======================================================================= */
+const ALL = generateFromTerms().concat(POOL);
+// 安定ID（復習機能のため、内容から決まるIDを振る）
+ALL.forEach((q,i)=>{q.id = q.cat+"|"+q.type+"|"+(q.q.replace(/\s/g,"").slice(0,24))+"|"+i;});
+
+const CATS = ["全範囲","旧石器","縄文","弥生","遣使","邪馬台国","古墳","政治","交流","文化"];
+const TYPE_LABEL = {mc:"選択",tf:"○か×か",order:"ならべかえ",desc:"記述"};
+
+// --- 保存（localStorage、使えない環境ではメモリにフォールバック）---
+const mem={v:{}};
+const store={
+  load(){try{return JSON.parse(localStorage.getItem("rekishi_quiz"))||{stats:{},wrong:[]};}catch(e){return mem.v.stats?mem.v:{stats:{},wrong:[]};}},
+  save(d){try{localStorage.setItem("rekishi_quiz",JSON.stringify(d));}catch(e){mem.v=d;}}
+};
+function getData(){const d=store.load();d.stats=d.stats||{};d.wrong=d.wrong||[];return d;}
+
+let state={cat:"全範囲",count:10,list:[],idx:0,score:0,answered:false,wrongThisRound:[]};
+
+// --- ホーム描画 ---
+function renderCats(){
+  const box=document.getElementById("catChips");box.innerHTML="";
+  CATS.forEach(c=>{
+    const b=document.createElement("button");
+    b.className="chip"+(c===state.cat?" on":"");b.textContent=c;
+    b.onclick=()=>{state.cat=c;renderCats();};
+    box.appendChild(b);
+  });
+}
+function renderStats(){
+  const d=getData();let seen=0,correct=0;
+  Object.values(d.stats).forEach(s=>{seen+=s.seen;correct+=s.correct;});
+  document.getElementById("st-ans").textContent=seen;
+  document.getElementById("st-acc").textContent=seen?Math.round(correct/seen*100)+"%":"—";
+  document.getElementById("st-wrong").textContent=d.wrong.length;
+}
+
+document.getElementById("countChips").addEventListener("click",e=>{
+  if(!e.target.dataset.count)return;
+  state.count=+e.target.dataset.count;
+  [...document.querySelectorAll("#countChips .chip")].forEach(c=>c.classList.toggle("on",c===e.target));
+});
+
+// --- 出題セット作成 ---
+function buildList(reviewOnly){
+  let pool=ALL.slice();
+  if(reviewOnly){const w=new Set(getData().wrong);pool=pool.filter(q=>w.has(q.id));}
+  else if(state.cat!=="全範囲"){pool=pool.filter(q=>q.cat===state.cat);}
+  pool=shuffle(pool);
+  if(state.count>0)pool=pool.slice(0,state.count);
+  return pool;
+}
+function startQuiz(reviewOnly){
+  const list=buildList(reviewOnly);
+  if(list.length===0){alert(reviewOnly?"にがてな問題はまだありません。まずは通常モードで挑戦しよう！":"この範囲の問題がありません。");return;}
+  state.list=list;state.idx=0;state.score=0;state.wrongThisRound=[];
+  show("quiz");renderQuestion();
+}
+
+function show(id){["home","quiz","result"].forEach(s=>document.getElementById(s).classList.toggle("hidden",s!==id));window.scrollTo(0,0);}
+
+// --- 問題描画 ---
+function renderQuestion(){
+  const q=state.list[state.idx];state.answered=false;
+  document.getElementById("qcount").textContent=`${state.idx+1} / ${state.list.length}`;
+  document.getElementById("qscore").textContent=`正解 ${state.score}`;
+  document.getElementById("progBar").style.width=(state.idx/state.list.length*100)+"%";
+  document.getElementById("qcat").textContent=q.cat;
+  document.getElementById("qtext").innerHTML=`<span class="qtype">［${TYPE_LABEL[q.type]}］</span> `+escapeHtml(q.q);
+  document.getElementById("qfeedback").innerHTML="";
+  document.getElementById("nextBtn").classList.add("hidden");
+  const body=document.getElementById("qbody");body.innerHTML="";
+
+  if(q.type==="mc")        renderMC(q,body);
+  else if(q.type==="tf")   renderTF(q,body);
+  else if(q.type==="order")renderOrder(q,body);
+  else if(q.type==="desc") renderDesc(q,body);
+}
+
+function renderMC(q,body){
+  q.choices.forEach(c=>{
+    const b=document.createElement("button");b.className="opt";b.textContent=c;
+    b.onclick=()=>{if(state.answered)return;gradeChoice(q,c,b,q.a);};
+    body.appendChild(b);
+  });
+}
+function renderTF(q,body){
+  [["○ 正しい",true],["× 誤り",false]].forEach(([t,val])=>{
+    const b=document.createElement("button");b.className="opt";b.textContent=t;
+    b.onclick=()=>{if(state.answered)return;gradeChoice(q,val,b,q.a);};
+    body.appendChild(b);
+  });
+}
+function gradeChoice(q,chosen,btn,answer){
+  state.answered=true;
+  const ok=chosen===answer;
+  [...btn.parentNode.children].forEach(el=>{
+    el.classList.add("dim");
+    const isAns=(q.type==="tf")?((el.textContent[0]==="○")===answer):(el.textContent===answer);
+    if(isAns){el.classList.remove("dim");el.classList.add("correct");el.innerHTML+='<span class="mk">○</span>';}
+  });
+  if(!ok){btn.classList.remove("dim");btn.classList.add("wrong");btn.innerHTML+='<span class="mk">×</span>';}
+  finishQuestion(q,ok);
+}
+
+function renderOrder(q,body){
+  const correct=q.items;const shuffled=shuffle(q.items);let answer=[];
+  const ansBox=document.createElement("div");ansBox.className="ord-ans";
+  const poolBox=document.createElement("div");poolBox.className="ord-pool";
+  const hint=document.createElement("div");hint.className="ord-empty";hint.textContent="↑ ここに古い順で並びます";
+  ansBox.appendChild(hint);
+
+  function redraw(){
+    ansBox.innerHTML="";
+    if(answer.length===0)ansBox.appendChild(hint);
+    answer.forEach((t,i)=>{
+      const el=document.createElement("div");el.className="ord-item";
+      el.innerHTML=`<span class="num">${i+1}</span>${escapeHtml(t)}`;
+      el.onclick=()=>{if(state.answered)return;answer.splice(i,1);redraw();};
+      ansBox.appendChild(el);
+    });
+    [...poolBox.children].forEach(el=>{el.style.display=answer.includes(el.dataset.t)?"none":"block";});
+  }
+  shuffled.forEach(t=>{
+    const el=document.createElement("div");el.className="ord-item";el.dataset.t=t;el.textContent=t;
+    el.onclick=()=>{if(state.answered)return;answer.push(t);redraw();};
+    poolBox.appendChild(el);
+  });
+  const check=document.createElement("button");check.className="btn primary sm";check.textContent="答え合わせ";
+  check.onclick=()=>{
+    if(state.answered)return;
+    if(answer.length!==correct.length){alert("ぜんぶ並べてね。");return;}
+    state.answered=true;
+    const ok=answer.every((t,i)=>t===correct[i]);
+    [...ansBox.children].forEach((el,i)=>{
+      if(el.classList.contains("ord-empty"))return;
+      el.classList.add(answer[i]===correct[i]?"correct":"wrong");
+    });
+    if(!ok){
+      const ans=document.createElement("div");ans.style.cssText="margin-top:10px;font-size:14px;color:var(--ink2)";
+      ans.innerHTML="正しい順：<b>"+correct.map(escapeHtml).join(" → ")+"</b>";
+      body.appendChild(ans);
+    }
+    finishQuestion(q,ok);
+  };
+  body.appendChild(ansBox);
+  const lbl=document.createElement("div");lbl.className="ord-empty";lbl.textContent="下のカードをタップして並べよう";
+  body.appendChild(lbl);
+  body.appendChild(poolBox);body.appendChild(check);
+  redraw();
+}
+
+function renderDesc(q,body){
+  const note=document.createElement("div");note.className="ord-empty";
+  note.textContent="頭の中（または紙）で答えてから、下のボタンを押そう。";
+  body.appendChild(note);
+  const reveal=document.createElement("button");reveal.className="btn primary sm";reveal.textContent="答えを確認する";
+  reveal.onclick=()=>{
+    reveal.remove();
+    const box=document.createElement("div");box.className="reveal";
+    box.innerHTML=`<h4>解答例</h4><div class="model">${escapeHtml(q.model)}</div><h4>入っているとよいキーワード</h4>`;
+    q.keywords.forEach((k,i)=>{
+      const row=document.createElement("div");row.className="kw";
+      row.innerHTML=`<input type="checkbox" id="kw${i}"><label for="kw${i}">${escapeHtml(k)}</label>`;
+      box.appendChild(row);
+    });
+    const ask=document.createElement("p");ask.className="selfask";ask.textContent="自分の答えは、ねらいに合っていた？";
+    box.appendChild(ask);
+    const row=document.createElement("div");row.className="selfrow";
+    const yes=document.createElement("button");yes.className="btn maru sm";yes.textContent="○ できた";
+    const no=document.createElement("button");no.className="btn batsu sm";no.textContent="× もう一度";
+    yes.onclick=()=>{if(state.answered)return;state.answered=true;finishQuestion(q,true,true);};
+    no.onclick=()=>{if(state.answered)return;state.answered=true;finishQuestion(q,false,true);};
+    row.appendChild(yes);row.appendChild(no);box.appendChild(row);
+    body.appendChild(box);
+  };
+  body.appendChild(reveal);
+}
+
+// --- 採点後の共通処理 ---
+function finishQuestion(q,ok,quiet){
+  if(ok)state.score++;
+  else state.wrongThisRound.push(q);
+  // 保存
+  const d=getData();
+  const s=d.stats[q.id]||{seen:0,correct:0};s.seen++;if(ok)s.correct++;d.stats[q.id]=s;
+  const ws=new Set(d.wrong);if(ok)ws.delete(q.id);else ws.add(q.id);d.wrong=[...ws];
+  store.save(d);
+
+  const fb=document.getElementById("qfeedback");
+  if(!quiet){
+    fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><b>${ok?"○ 正解！":"× おしい"}</b>`+
+      (q.exp?`<div class="exp">${escapeHtml(q.exp)}</div>`:``)+`</div>`;
+  }else if(q.exp){
+    fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><div class="exp">${escapeHtml(q.exp)}</div></div>`;
+  }
+  document.getElementById("qscore").textContent=`正解 ${state.score}`;
+  document.getElementById("nextBtn").classList.remove("hidden");
+}
+
+document.getElementById("nextBtn").onclick=()=>{
+  state.idx++;
+  if(state.idx>=state.list.length)showResult();
+  else renderQuestion();
+};
+
+function showResult(){
+  document.getElementById("progBar").style.width="100%";
+  const total=state.list.length;
+  document.getElementById("rsScore").textContent=state.score;
+  document.getElementById("rsTotal").textContent=` / ${total}`;
+  const pct=Math.round(state.score/total*100);
+  let msg = pct===100?"全問正解！みごとです。":pct>=80?"よくできました！":pct>=50?"その調子。あと少し。":"くり返せば必ず力になります。";
+  document.getElementById("rsMsg").textContent=msg;
+  const ul=document.getElementById("rsWrong");ul.innerHTML="";
+  if(state.wrongThisRound.length){
+    const h=document.createElement("div");h.className="label";h.textContent="まちがえた問題";ul.appendChild(h);
+    state.wrongThisRound.forEach(q=>{const li=document.createElement("li");li.textContent=q.q.replace(/\n/g," ");ul.appendChild(li);});
+  }
+  document.getElementById("againWrongBtn").style.display=state.wrongThisRound.length?"block":"none";
+  show("result");renderStats();
+}
+
+document.getElementById("startBtn").onclick=()=>startQuiz(false);
+document.getElementById("reviewBtn").onclick=()=>startQuiz(true);
+document.getElementById("quitBtn").onclick=()=>{show("home");renderStats();};
+document.getElementById("homeBtn").onclick=()=>{show("home");renderStats();};
+document.getElementById("againWrongBtn").onclick=()=>{
+  state.list=shuffle(state.wrongThisRound);state.idx=0;state.score=0;state.wrongThisRound=[];
+  show("quiz");renderQuestion();
+};
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("これまでの記録（といた数・正答率・にがて）をすべて消します。よろしいですか？")){
+    store.save({stats:{},wrong:[]});renderStats();
+  }
+};
+
+function escapeHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+// 初期化
+renderCats();renderStats();
+</script>
+</body>
+</html>
