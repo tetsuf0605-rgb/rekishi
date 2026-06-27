@@ -93,6 +93,11 @@
 
   /* 記述 */
   .reveal{background:var(--paper2);border-radius:11px;padding:14px;margin-top:8px;}
+  .ansinput{width:100%;font-size:18px;padding:14px 15px;border:1.5px solid var(--line);border-radius:11px;
+    background:#fff;color:var(--ink);margin-bottom:10px;min-height:52px;}
+  .ansinput:focus{outline:none;border-color:var(--shu);}
+  .ansinput.correct{border-color:var(--green);background:#eaf3ec;}
+  .ansinput.wrong{border-color:var(--shu);background:#f7e9e6;}
   .reveal h4{margin:0 0 6px;font-size:13px;color:var(--ink2);letter-spacing:.05em;}
   .reveal .model{font-size:16px;margin-bottom:12px;}
   .kw{display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px dashed var(--line);}
@@ -149,6 +154,12 @@
         <button class="chip sm on" data-count="10">10問</button>
         <button class="chip sm" data-count="20">20問</button>
         <button class="chip sm" data-count="0">ぜんぶ</button>
+      </div>
+
+      <div class="label">出題形式</div>
+      <div class="chips" id="modeChips">
+        <button class="chip sm on" data-mode="choice">選択モード</button>
+        <button class="chip sm" data-mode="input">入力モード（漢字でもかなでもOK）</button>
       </div>
 
       <button class="btn primary" id="startBtn">スタート</button>
@@ -441,13 +452,13 @@ function generateFromTerms(){
     return pool;
   }
   objs.forEach(t=>{
-    // 語句→意味
-    qs.push({type:"mc",cat:t.cat,
+    // 語句→意味（説明を選ぶ。入力には不向きなので選択のまま）
+    qs.push({type:"mc",cat:t.cat,inputable:false,
       q:`「${t.term}」の説明として正しいものはどれ？`,
       choices:shuffle([t.mean,...pickDistinct(candidates(t,"mean",t.mean),3,[t.mean])]),
       a:t.mean,exp:`${t.term}（${t.read}）… ${t.mean}`});
-    // 意味→語句
-    qs.push({type:"mc",cat:t.cat,
+    // 意味→語句（語句を答える。入力モードでは自由入力にできる）
+    qs.push({type:"mc",cat:t.cat,inputable:true,term:t.term,read:t.read,answers:[t.term,t.read],
       q:`次の説明にあてはまる語句はどれ？\n「${t.mean}」`,
       choices:shuffle([t.term,...pickDistinct(candidates(t,"term",t.term),3,[t.term])]),
       a:t.term,exp:`答え：${t.term}（${t.read}）`});
@@ -473,7 +484,7 @@ const store={
 };
 function getData(){const d=store.load();d.stats=d.stats||{};d.wrong=d.wrong||[];return d;}
 
-let state={cat:"全範囲",count:10,list:[],idx:0,score:0,answered:false,wrongThisRound:[]};
+let state={cat:"全範囲",count:10,mode:"choice",list:[],idx:0,score:0,answered:false,wrongThisRound:[]};
 
 // --- ホーム描画 ---
 function renderCats(){
@@ -497,6 +508,12 @@ document.getElementById("countChips").addEventListener("click",e=>{
   if(!e.target.dataset.count)return;
   state.count=+e.target.dataset.count;
   [...document.querySelectorAll("#countChips .chip")].forEach(c=>c.classList.toggle("on",c===e.target));
+});
+
+document.getElementById("modeChips").addEventListener("click",e=>{
+  if(!e.target.dataset.mode)return;
+  state.mode=e.target.dataset.mode;
+  [...document.querySelectorAll("#modeChips .chip")].forEach(c=>c.classList.toggle("on",c===e.target));
 });
 
 // --- 出題セット作成 ---
@@ -524,15 +541,56 @@ function renderQuestion(){
   document.getElementById("qscore").textContent=`正解 ${state.score}`;
   document.getElementById("progBar").style.width=(state.idx/state.list.length*100)+"%";
   document.getElementById("qcat").textContent=q.cat;
-  document.getElementById("qtext").innerHTML=`<span class="qtype">［${TYPE_LABEL[q.type]}］</span> `+escapeHtml(q.q);
+  const inputMode = (state.mode==="input" && q.type==="mc" && q.inputable);
+  const qtextStr = inputMode ? q.q.replace("あてはまる語句はどれ？","あてはまる語句は？") : q.q;
+  document.getElementById("qtext").innerHTML=`<span class="qtype">［${inputMode?"入力":TYPE_LABEL[q.type]}］</span> `+escapeHtml(qtextStr);
   document.getElementById("qfeedback").innerHTML="";
   document.getElementById("nextBtn").classList.add("hidden");
   const body=document.getElementById("qbody");body.innerHTML="";
 
-  if(q.type==="mc")        renderMC(q,body);
+  if(inputMode)            renderInput(q,body);
+  else if(q.type==="mc")   renderMC(q,body);
   else if(q.type==="tf")   renderTF(q,body);
   else if(q.type==="order")renderOrder(q,body);
   else if(q.type==="desc") renderDesc(q,body);
+}
+
+// 入力のゆらぎを吸収：全角英数→半角、カタカナ→ひらがな、空白除去
+function normalize(s){
+  s=(s||"").trim();
+  s=s.replace(/[Ａ-Ｚａ-ｚ０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  s=s.replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  s=s.replace(/[\s\u3000]/g,"");
+  return s.toLowerCase();
+}
+function renderInput(q,body){
+  const answers=(q.answers||[q.a]).map(normalize);
+  const wrap=document.createElement("div");
+  const inp=document.createElement("input");
+  inp.type="text";inp.className="ansinput";
+  inp.setAttribute("autocomplete","off");inp.setAttribute("autocapitalize","off");
+  inp.setAttribute("autocorrect","off");inp.placeholder="答えを入力（漢字でもかなでもOK）";
+  wrap.appendChild(inp);
+  const row=document.createElement("div");row.className="selfrow";
+  const dunno=document.createElement("button");dunno.className="btn batsu sm";dunno.textContent="わからない";
+  const check=document.createElement("button");check.className="btn primary sm";check.textContent="答え合わせ";
+  row.appendChild(dunno);row.appendChild(check);wrap.appendChild(row);
+  body.appendChild(wrap);
+  setTimeout(()=>inp.focus(),50);
+
+  function grade(typed){
+    if(state.answered)return;state.answered=true;
+    const ok = typed!==null && answers.includes(normalize(typed));
+    inp.disabled=true;inp.classList.add(ok?"correct":"wrong");
+    const fb=document.getElementById("qfeedback");
+    fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><b>${ok?"○ 正解！":"× おしい"}</b>`+
+      `<div class="exp">正解：${escapeHtml(q.term)}（${escapeHtml(q.read)}）</div>`+
+      (ok?``:`<div class="exp" style="color:var(--ink2)">「漢字」でも「ひらがな（読み）」でも正解になります。</div>`)+`</div>`;
+    finishQuestion(q,ok,true,true);
+  }
+  check.onclick=()=>grade(inp.value);
+  dunno.onclick=()=>grade(null);
+  inp.addEventListener("keydown",ev=>{if(ev.key==="Enter")grade(inp.value);});
 }
 
 function renderMC(q,body){
@@ -636,7 +694,7 @@ function renderDesc(q,body){
 }
 
 // --- 採点後の共通処理 ---
-function finishQuestion(q,ok,quiet){
+function finishQuestion(q,ok,quiet,skipFb){
   if(ok)state.score++;
   else state.wrongThisRound.push(q);
   // 保存
@@ -646,11 +704,13 @@ function finishQuestion(q,ok,quiet){
   store.save(d);
 
   const fb=document.getElementById("qfeedback");
-  if(!quiet){
-    fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><b>${ok?"○ 正解！":"× おしい"}</b>`+
-      (q.exp?`<div class="exp">${escapeHtml(q.exp)}</div>`:``)+`</div>`;
-  }else if(q.exp){
-    fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><div class="exp">${escapeHtml(q.exp)}</div></div>`;
+  if(!skipFb){
+    if(!quiet){
+      fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><b>${ok?"○ 正解！":"× おしい"}</b>`+
+        (q.exp?`<div class="exp">${escapeHtml(q.exp)}</div>`:``)+`</div>`;
+    }else if(q.exp){
+      fb.innerHTML=`<div class="fb ${ok?"ok":"ng"}"><div class="exp">${escapeHtml(q.exp)}</div></div>`;
+    }
   }
   document.getElementById("qscore").textContent=`正解 ${state.score}`;
   document.getElementById("nextBtn").classList.remove("hidden");
