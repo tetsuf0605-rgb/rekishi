@@ -1,0 +1,9 @@
+{
+  "name": "古代日本史 問題集",
+  "short_name": "日本史",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3ede0",
+  "theme_color": "#1f2545",
+  "icons": [{ "src": "icon.png", "sizes": "512x512", "type": "image/png" }]
+}
