@@ -122,12 +122,6 @@
   .hidden{display:none;}
   .footnote{text-align:center;font-size:11px;color:var(--ink2);margin-top:26px;}
 </style>
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" href="icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="日本史">
-<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 <div class="wrap">
@@ -210,9 +204,9 @@ const TERMS = [
   ["関東ローム層","かんとうろーむそう","更新世の富士山などの火山灰が積もった地層。ここから打製石器が見つかった","旧石器"],
   ["更新世","こうしんせい","氷河時代をふくむ地質時代。寒冷で、海面が今より100m以上低かった","旧石器"],
   ["氷河時代","ひょうがじだい","寒冷化で海面が大きく下がり、日本列島が大陸と陸続きになる時期もあった時代","旧石器"],
-  ["ナウマンゾウ","なうまんぞう","朝鮮半島ルートで日本へ渡来した大型動物。野尻湖遺跡で化石が見つかった","旧石器"],
+  ["ナウマンゾウ","なうまんぞう","朝鮮半島ルートで渡来した、ゾウのなかまの大型動物。野尻湖遺跡で化石が見つかった","旧石器"],
   ["マンモス","まんもす","北方ルート(シベリア経由)で日本へ渡来した大型動物","旧石器"],
-  ["オオツノジカ","おおつのじか","朝鮮半島ルートで渡来した大型動物。野尻湖遺跡で化石が見つかった","旧石器"],
+  ["オオツノジカ","おおつのじか","朝鮮半島ルートで渡来した、大きな角をもつシカのなかまの大型動物。野尻湖遺跡で化石が見つかった","旧石器"],
   ["野尻湖遺跡","のじりこいせき","長野県にある、ナウマンゾウとオオツノジカの化石が見つかった旧石器時代の遺跡","旧石器"],
   ["黒曜石","こくようせき","石器の材料になる火山岩。産地と分布から、遠方との交易があったことがわかる","旧石器"],
   ["ナイフ型石器","ないふがたせっき","旧石器時代に使われた打製石器の一種","旧石器"],
@@ -415,17 +409,31 @@ function pickDistinct(pool,n,exclude){
   for(const x of shuffle(pool)){if(out.length>=n)break;if(!used.has(x)){out.push(x);used.add(x);}}
   return out;
 }
+// 2つの説明文が似すぎていないか判定（文字2-gramの重なり率）。
+// 似すぎる説明は「どちらも正解に読める」ダミーになってしまうので除外する。
+function tooSimilar(a,b){
+  const grams=s=>{const g=new Set();for(let i=0;i<s.length-1;i++)g.add(s.slice(i,i+2));return g;};
+  const A=grams(a),B=grams(b);if(A.size===0||B.size===0)return false;
+  let inter=0;A.forEach(x=>{if(B.has(x))inter++;});
+  return inter/(A.size+B.size-inter) > 0.55;
+}
 function generateFromTerms(){
   const objs=TERMS.map(t=>({term:t[0],read:t[1],mean:t[2],cat:t[3]}));
   const qs=[];
   objs.forEach(t=>{
     const same=objs.filter(o=>o.cat===t.cat&&o.term!==t.term);
-    const meanPool=(same.length>=3?same:objs.filter(o=>o.term!==t.term)).map(o=>o.mean);
-    const termPool=(same.length>=3?same:objs.filter(o=>o.term!==t.term)).map(o=>o.term);
+    const base=(same.length>=3?same:objs.filter(o=>o.term!==t.term));
+    // 説明文ダミーは、正解の説明と似すぎるものを除外（足りなければ全体から補う）
+    let meanCand=base.filter(o=>!tooSimilar(o.mean,t.mean)).map(o=>o.mean);
+    if(meanCand.length<3){
+      const extra=objs.filter(o=>o.term!==t.term&&!tooSimilar(o.mean,t.mean)).map(o=>o.mean);
+      meanCand=Array.from(new Set(meanCand.concat(extra)));
+    }
+    const termPool=base.map(o=>o.term);
     // 語句→意味
     qs.push({type:"mc",cat:t.cat,
       q:`「${t.term}」の説明として正しいものはどれ？`,
-      choices:shuffle([t.mean,...pickDistinct(meanPool,3,[t.mean])]),
+      choices:shuffle([t.mean,...pickDistinct(meanCand,3,[t.mean])]),
       a:t.mean,exp:`${t.term}（${t.read}）… ${t.mean}`});
     // 意味→語句
     qs.push({type:"mc",cat:t.cat,
