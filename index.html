@@ -63,6 +63,7 @@
   .btn.primary{background:var(--shu);color:#fff;box-shadow:0 4px 0 var(--shu-d);}
   .btn.primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--shu-d);}
   .btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line);box-shadow:none;font-size:15px;padding:12px;font-weight:600;}
+  .btn.resume{background:#fff;color:var(--shu-d);border:1.5px solid var(--shu);box-shadow:none;}
   .btn.sm{padding:11px;font-size:15px;margin-top:10px;}
 
   /* 進捗バー */
@@ -162,6 +163,7 @@
         <button class="chip sm" data-mode="input">入力モード（漢字でもかなでもOK）</button>
       </div>
 
+      <button class="btn resume hidden" id="resumeBtn">▶ 続きから再開</button>
       <button class="btn primary" id="startBtn">スタート</button>
       <button class="btn ghost sm" id="reviewBtn">にがてな問題だけ復習する</button>
     </div>
@@ -502,6 +504,37 @@ function renderStats(){
   document.getElementById("st-ans").textContent=seen;
   document.getElementById("st-acc").textContent=seen?Math.round(correct/seen*100)+"%":"—";
   document.getElementById("st-wrong").textContent=d.wrong.length;
+  // 続きから再開ボタンの表示
+  const btn=document.getElementById("resumeBtn");
+  if(hasResume()){
+    const r=getData().resume;
+    btn.textContent=`▶ 続きから再開（${r.idx+1}/${r.ids.length}問目）`;
+    btn.classList.remove("hidden");
+  }else{
+    btn.classList.add("hidden");
+  }
+}
+
+// --- 中断・再開 ---
+function findQById(id){return ALL.find(q=>q.id===id);}
+function hasResume(){const r=getData().resume;return !!(r&&r.ids&&r.idx<r.ids.length);}
+function saveResume(){
+  const d=getData();
+  d.resume={ids:state.list.map(q=>q.id),idx:state.idx,score:state.score,
+    wrong:state.wrongThisRound.map(q=>q.id),mode:state.mode,cat:state.cat};
+  store.save(d);
+}
+function clearResume(){const d=getData();delete d.resume;store.save(d);}
+function resumeQuiz(){
+  const r=getData().resume;if(!r)return;
+  state.list=r.ids.map(findQById).filter(Boolean);
+  if(state.list.length===0){clearResume();renderStats();return;}
+  state.idx=Math.min(r.idx,state.list.length-1);
+  state.score=r.score||0;
+  state.wrongThisRound=(r.wrong||[]).map(findQById).filter(Boolean);
+  state.mode=r.mode||"choice";
+  state.cat=r.cat||state.cat;
+  show("quiz");renderQuestion();
 }
 
 document.getElementById("countChips").addEventListener("click",e=>{
@@ -528,6 +561,7 @@ function buildList(reviewOnly){
 function startQuiz(reviewOnly){
   const list=buildList(reviewOnly);
   if(list.length===0){alert(reviewOnly?"にがてな問題はまだありません。まずは通常モードで挑戦しよう！":"この範囲の問題がありません。");return;}
+  clearResume();
   state.list=list;state.idx=0;state.score=0;state.wrongThisRound=[];
   show("quiz");renderQuestion();
 }
@@ -736,14 +770,25 @@ function showResult(){
     state.wrongThisRound.forEach(q=>{const li=document.createElement("li");li.textContent=q.q.replace(/\n/g," ");ul.appendChild(li);});
   }
   document.getElementById("againWrongBtn").style.display=state.wrongThisRound.length?"block":"none";
+  clearResume();
   show("result");renderStats();
 }
 
 document.getElementById("startBtn").onclick=()=>startQuiz(false);
 document.getElementById("reviewBtn").onclick=()=>startQuiz(true);
-document.getElementById("quitBtn").onclick=()=>{show("home");renderStats();};
+document.getElementById("resumeBtn").onclick=()=>resumeQuiz();
+document.getElementById("quitBtn").onclick=()=>{
+  const remaining = state.idx < state.list.length;
+  const msg = remaining
+    ? "ホームに戻りますか？\n途中までの内容は保存され、ホームの「続きから再開」であとで続けられます。"
+    : "ホームに戻りますか？";
+  if(!confirm(msg))return;
+  if(remaining)saveResume(); else clearResume();
+  show("home");renderStats();
+};
 document.getElementById("homeBtn").onclick=()=>{show("home");renderStats();};
 document.getElementById("againWrongBtn").onclick=()=>{
+  clearResume();
   state.list=shuffle(state.wrongThisRound);state.idx=0;state.score=0;state.wrongThisRound=[];
   show("quiz");renderQuestion();
 };
